@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const userModels = require("../models/userModels");
 const asset = require("../models/asset.model.js");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const registerUser = async (req, res) => {
   try {
@@ -403,6 +404,74 @@ const getAssetDetails = async (req, res) => {
   }
 };
 
+const chatWithAI = async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({
+        status: false,
+        message: "Message is required",
+      });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!apiKey || apiKey === "your_gemini_api_key_here") {
+      return res.status(500).json({
+        status: false,
+        message: "Gemini API key is not configured on the backend.",
+      });
+    }
+
+    // Retrieve user assets to build context dynamically in the backend
+    const userAssets = await asset.find({ userId: req.user.id });
+    
+    const transformedAssets = userAssets.map((assetItem) => ({
+      name: assetItem.assetName,
+      symbol: assetItem.symbol,
+      type: assetItem.assetType,
+      quantity: assetItem.Quantity || 0,
+      currentPrice: assetItem.currentPrice || 0,
+      purchasePrice: assetItem.purchasePrice || 0,
+    }));
+
+    // Calculate portfolio statistics
+    const totalValue = transformedAssets.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0);
+    const totalInvested = transformedAssets.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
+    const changeAmount = totalValue - totalInvested;
+    const changePercent = totalInvested > 0 ? (changeAmount / totalInvested) * 100 : 0;
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const systemInstruction = `You are the Investfolio AI assistant. You help the user manage, optimize, and analyze their investments.
+Here is the user's current portfolio status (queried securely from the database):
+- Total Value: $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- Profit/Loss: $${changeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${changePercent.toFixed(2)}%)
+- Assets Owned: ${transformedAssets.length > 0 ? JSON.stringify(transformedAssets) : "No assets added yet"}
+
+Answer user questions about their portfolio or general financial queries. Be friendly, concise, and professional. Provide helpful suggestions but clarify you aren't providing official financial advice.`;
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: `${systemInstruction}\n\nUser: ${message}` }] }]
+    });
+
+    const responseText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't get a response. Please try again.";
+
+    return res.status(200).json({
+      status: true,
+      message: "Chat processed successfully",
+      data: responseText,
+    });
+
+  } catch (error) {
+    console.error("ChatBot backend error:", error);
+    return res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -411,4 +480,5 @@ module.exports = {
   addAsset,
   getAssetDetails,
   deleteAsset,
+  chatWithAI,
 };

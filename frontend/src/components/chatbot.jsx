@@ -1,18 +1,13 @@
 import 'regenerator-runtime';
 import { useState, useEffect, useRef } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { TbMessageCircle } from 'react-icons/tb';
 import { FaRobot } from 'react-icons/fa';
 import { FiX, FiVolume2, FiVolumeX, FiSend, FiMic } from 'react-icons/fi';
-import { usePortfolio } from '../contexts/PortfolioContext';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = apiKey && apiKey !== 'your_gemini_api_key_here' ? new GoogleGenerativeAI(apiKey) : null;
+import { API_BASE_URL } from '../config';
 
 const ChatBot = ({ onClose }) => {
-    const { assets, portfolioValue, portfolioChangePercent, portfolioChangeAmount } = usePortfolio();
     const [messages, setMessages] = useState([
         { text: "Hello! I'm your Investfolio AI assistant. How can I help you manage your investments today?", isUser: false }
     ]);
@@ -21,8 +16,6 @@ const ChatBot = ({ onClose }) => {
     const chatEndRef = useRef(null);
 
     const { transcript, resetTranscript, listening, browserSupportsSpeechRecognition } = useSpeechRecognition();
-
-    const isApiKeyConfigured = !!genAI;
 
     // Auto scroll to bottom of chat
     useEffect(() => {
@@ -77,33 +70,28 @@ const ChatBot = ({ onClose }) => {
     };
 
     const processUserInput = async (input) => {
-        if (!isApiKeyConfigured) {
-            addMessage("I am currently in demo mode. Please configure your VITE_GEMINI_API_KEY in the frontend environment file (.env) to talk to me.", false);
-            return;
-        }
-
         setIsProcessing(true);
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-            // Create dynamic context of user's investments to make AI smart
-            const systemInstruction = `You are the Investfolio AI assistant. You help the user manage, optimize, and analyze their investments.
-Here is the user's current portfolio status:
-- Total Value: $${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- Profit/Loss: $${portfolioChangeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${portfolioChangePercent.toFixed(2)}%)
-- Assets Owned: ${assets.length > 0 ? JSON.stringify(assets.map(a => ({ name: a.name, symbol: a.symbol, type: a.type, quantity: a.quantity, currentPrice: a.currentPrice }))) : "No assets added yet"}
-
-Answer user questions about their portfolio or general financial queries. Be friendly, concise, and professional. Provide helpful suggestions but clarify you aren't providing official financial advice.`;
-
-            const result = await model.generateContent({
-                contents: [{ role: "user", parts: [{ text: `${systemInstruction}\n\nUser: ${input}` }] }]
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/api/user/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message: input })
             });
 
-            const responseText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't get a response. Please try again.";
-            addMessage(responseText, false);
+            const data = await response.json();
+            
+            if (response.ok && data.status) {
+                addMessage(data.data, false);
+            } else {
+                addMessage(data.message || "I'm sorry, I couldn't get a response. Please try again.", false);
+            }
         } catch (error) {
-            console.error("Gemini API Error:", error);
-            addMessage("Sorry, I had trouble reaching my brain. Please check your internet or API key.", false);
+            console.error("ChatBot API Error:", error);
+            addMessage("Sorry, I had trouble reaching the backend server. Please try again later.", false);
         }
         setIsProcessing(false);
     };
@@ -183,16 +171,6 @@ Answer user questions about their portfolio or general financial queries. Be fri
 
             {/* Chat Body */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-                {!isApiKeyConfigured && (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs mb-3 space-y-2">
-                        <p className="font-semibold flex items-center">
-                            ⚠️ API Key Configuration Needed
-                        </p>
-                        <p>
-                            Please set your Google Gemini API key as <code className="bg-slate-800 px-1 py-0.5 rounded font-mono text-amber-300">VITE_GEMINI_API_KEY</code> in your frontend environment file (.env) to enable real AI responses.
-                        </p>
-                    </div>
-                )}
 
                 {messages.map((message, index) => (
                     <motion.div
