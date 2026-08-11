@@ -6,6 +6,7 @@ import { FaRobot } from 'react-icons/fa';
 import { FiX, FiVolume2, FiVolumeX, FiSend, FiMic } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
+import { useAuth } from '../contexts/AuthContext';
 
 const ChatBot = ({ onClose }) => {
     const [messages, setMessages] = useState([
@@ -265,7 +266,10 @@ const ChatBot = ({ onClose }) => {
 };
 
 const ChatBotToggle = () => {
+    const { currentUser } = useAuth();
     const [isChatBotOpen, setIsChatBotOpen] = useState(false);
+
+    if (!currentUser) return null;
 
     return (
         <div>
