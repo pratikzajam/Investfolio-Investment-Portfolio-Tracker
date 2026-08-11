@@ -16,6 +16,7 @@ export function PortfolioProvider({ children }) {
   const [portfolioValue, setPortfolioValue] = useState(0);
   const [portfolioChangePercent, setPortfolioChangePercent] = useState(0);
   const [portfolioChangeAmount, setPortfolioChangeAmount] = useState(0);
+  const [allocation, setAllocation] = useState({});
   
   // Get auth context to be aware of user changes
   const { currentUser, userId } = useAuth();
@@ -27,6 +28,7 @@ export function PortfolioProvider({ children }) {
     setPortfolioValue(0);
     setPortfolioChangePercent(0);
     setPortfolioChangeAmount(0);
+    setAllocation({});
     
     // Only fetch assets if there's a logged-in user
     if (currentUser) {
@@ -55,7 +57,14 @@ export function PortfolioProvider({ children }) {
       if (response.data.status) {
         const fetchedAssets = response.data.data;
         setAssets(fetchedAssets);
-        calculatePortfolioStats(fetchedAssets);
+        if (response.data.stats) {
+          setPortfolioValue(response.data.stats.portfolioValue || 0);
+          setPortfolioChangeAmount(response.data.stats.portfolioChangeAmount || 0);
+          setPortfolioChangePercent(response.data.stats.portfolioChangePercent || 0);
+          setAllocation(response.data.stats.allocation || {});
+        } else {
+          calculatePortfolioStats(fetchedAssets);
+        }
       } else {
         console.error('Failed to fetch assets:', response.data.message);
         setAssets([]);
@@ -168,14 +177,15 @@ export function PortfolioProvider({ children }) {
 
   // Get asset allocation by type
   const getAssetAllocation = () => {
-    const allocation = {};
-
+    if (Object.keys(allocation).length > 0) {
+      return allocation;
+    }
+    const computedAllocation = {};
     assets.forEach(asset => {
       const value = asset.currentPrice * asset.quantity;
-      allocation[asset.type] = (allocation[asset.type] || 0) + value;
+      computedAllocation[asset.type] = (computedAllocation[asset.type] || 0) + value;
     });
-
-    return allocation;
+    return computedAllocation;
   };
 
   const value = {

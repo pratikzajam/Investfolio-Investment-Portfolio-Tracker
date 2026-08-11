@@ -345,10 +345,16 @@ const getAssetDetails = async (req, res) => {
     const assets = await asset.find({ userId: req.user.id });
 
     if (assets.length === 0) {
-      return res.status(404).json({
-        status: false,
+      return res.status(200).json({
+        status: true,
         message: "No assets found",
-        data: null,
+        data: [],
+        stats: {
+          portfolioValue: 0,
+          portfolioChangeAmount: 0,
+          portfolioChangePercent: 0,
+          allocation: {}
+        }
       });
     }
 
@@ -364,10 +370,29 @@ const getAssetDetails = async (req, res) => {
       logoUrl: assetItem.logoUrl,
     }));
 
+    // Calculate portfolio statistics in backend
+    const totalValue = transformedAssets.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0);
+    const totalInvested = transformedAssets.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
+    const changeAmount = totalValue - totalInvested;
+    const changePercent = totalInvested > 0 ? (changeAmount / totalInvested) * 100 : 0;
+
+    // Calculate asset allocation in backend
+    const allocation = {};
+    transformedAssets.forEach(item => {
+      const value = item.currentPrice * item.quantity;
+      allocation[item.type] = (allocation[item.type] || 0) + value;
+    });
+
     return res.status(200).json({
       status: true,
       message: "Assets fetched successfully",
       data: transformedAssets,
+      stats: {
+        portfolioValue: totalValue,
+        portfolioChangeAmount: changeAmount,
+        portfolioChangePercent: changePercent,
+        allocation
+      }
     });
   } catch (error) {
     return res.status(403).json({
