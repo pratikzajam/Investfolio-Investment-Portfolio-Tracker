@@ -441,7 +441,7 @@ const chatWithAI = async (req, res) => {
     const changePercent = totalInvested > 0 ? (changeAmount / totalInvested) * 100 : 0;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
     const systemInstruction = `You are the Investfolio AI assistant. You help the user manage, optimize, and analyze their investments.
 Here is the user's current portfolio status (queried securely from the database):
