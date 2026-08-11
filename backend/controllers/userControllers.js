@@ -449,18 +449,21 @@ Here is the user's current portfolio status (queried securely from the database)
 - Profit/Loss: $${changeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${changePercent.toFixed(2)}%)
 - Assets Owned: ${transformedAssets.length > 0 ? JSON.stringify(transformedAssets) : "No assets added yet"}
 
-Answer user questions about their portfolio or general financial queries. Be friendly, concise, and professional. Provide helpful suggestions but clarify you aren't providing official financial advice.`;
+Answer user questions about their portfolio or general financial queries. Be friendly, concise, and professional. Provide helpful suggestions but clarify you aren't providing official financial advice. IMPORTANT: Do not use any markdown bold formatting (like asterisks ** for bold text) or any headers in your responses; keep it as plain text without any stars/asterisks.`;
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: `${systemInstruction}\n\nUser: ${message}` }] }]
     });
 
     const responseText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't get a response. Please try again.";
+    
+    // Strip out all markdown bold stars/asterisks
+    const cleanedResponse = responseText.replace(/\*\*/g, '');
 
     return res.status(200).json({
       status: true,
       message: "Chat processed successfully",
-      data: responseText,
+      data: cleanedResponse,
     });
 
   } catch (error) {
