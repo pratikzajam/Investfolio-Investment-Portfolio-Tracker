@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from "jwt-decode";
+import { API_BASE_URL } from '../config';
 
 const AuthContext = createContext(null);
 
@@ -72,7 +73,7 @@ function AuthProvider({ children }) {
       // Clear any existing data before login
       localStorage.removeItem('portfolioAssets');
       
-      const response = await fetch('https://investfolio.onrender.com/api/user/login', {
+      const response = await fetch(`${API_BASE_URL}/api/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +126,7 @@ function AuthProvider({ children }) {
       // Clear any existing data before signup
       localStorage.removeItem('portfolioAssets');
       
-      const response = await fetch('https://investfolio.onrender.com/api/user/signup', {
+      const response = await fetch(`${API_BASE_URL}/api/user/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ function AuthProvider({ children }) {
     try {
       if (!authToken) return false;
       
-      const response = await fetch('http://localhost:3777/api/user/refresh', {
+      const response = await fetch(`${API_BASE_URL}/api/user/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

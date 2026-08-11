@@ -10,7 +10,7 @@ const PORT = process.env.PORT
 app.use(express.json());
 // Configure CORS to allow requests from frontend
 app.use(cors({
-    origin: ' https://investfolio.vercel.app', // Vite's default development server port
+    origin: process.env.FRONTEND_URL || 'https://investfolio.vercel.app',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],

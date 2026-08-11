@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { mockHistoricalData } from '../data/mockData';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const PortfolioContext = createContext(null);
 
@@ -45,7 +46,7 @@ export function PortfolioProvider({ children }) {
         return;
       }
 
-      const response = await axios.get('https://investfolio.onrender.com/api/user/getassets', {
+      const response = await axios.get(`${API_BASE_URL}/api/user/getassets`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -92,7 +93,7 @@ export function PortfolioProvider({ children }) {
       const token = localStorage.getItem('token');
       
       const response = await axios.put(
-        `https://investfolio.onrender.com/api/user/updateasset/${updatedAsset.id}`,
+        `${API_BASE_URL}/api/user/updateasset/${updatedAsset.id}`,
         {
           assetName: updatedAsset.name,
           symbol: updatedAsset.symbol,
@@ -130,7 +131,7 @@ export function PortfolioProvider({ children }) {
       const token = localStorage.getItem('token');
       
       const response = await axios.delete(
-        `https://investfolio.onrender.com/api/user/deleteasset/${assetId}`,
+        `${API_BASE_URL}/api/user/deleteasset/${assetId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

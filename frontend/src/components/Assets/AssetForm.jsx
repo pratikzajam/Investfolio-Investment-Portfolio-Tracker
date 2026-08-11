@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 
 // Make sure to use default export
 export default function AssetForm({ onClose, initialAsset = null }) {
@@ -105,7 +106,7 @@ export default function AssetForm({ onClose, initialAsset = null }) {
       } else {
         // Direct API call for adding
         const response = await axios.post(
-          'https://investfolio.onrender.com/api/user/addasset',
+          `${API_BASE_URL}/api/user/addasset`,
           {
             assetName: assetData.name,
             symbol: assetData.symbol,
